@@ -29,6 +29,8 @@ object ClusterApp {
         val userManager = system.actorOf(UserManager.props(module), "userManager")
         module.bind[ActorRef] idBy UserManager toSingle userManager
 
+        Thread.sleep(2000)
+
         if (seedAddr != ownAddr || seedPort != ownPort) {
           1 to 5 foreach { uid =>
             userManager ! UpdateUserCoins(uid, Random.nextInt(100))
