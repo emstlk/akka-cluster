@@ -16,11 +16,11 @@ object ClusterApp {
       val (ownAddr, ownPort) = parseAddr(args(1))
 
       val config = ConfigFactory.parseString( s"""
+      akka.cluster.seed-nodes=["akka.tcp://backend@$seedAddr:$seedPort"]
       akka.remote.netty.tcp.hostname="$ownAddr"
       akka.remote.netty.tcp.port="$ownPort"
-      akka.cluster.seed-nodes=["akka.tcp://backend@$seedAddr:$seedPort"]
       """).withFallback(ConfigFactory.load)
-      val system = ActorSystem("ClusterApp", config)
+      val system = ActorSystem("backend", config)
 
       val userManager = system.actorOf(UserManager.props(), "userManager")
 
