@@ -18,7 +18,7 @@ object ClusterApp {
       val config = ConfigFactory.parseString( s"""
       akka.remote.netty.tcp.hostname="$ownAddr"
       akka.remote.netty.tcp.port="$ownPort"
-      akka.cluster.seed-nodes=["akka.tcp://ClusterApp@$seedAddr:$seedPort"]
+      akka.cluster.seed-nodes=["akka.tcp://backend@$seedAddr:$seedPort"]
       """).withFallback(ConfigFactory.load)
       val system = ActorSystem("ClusterApp", config)
 
