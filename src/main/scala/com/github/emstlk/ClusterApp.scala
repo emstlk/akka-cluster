@@ -1,6 +1,7 @@
 package com.github.emstlk
 
 import akka.actor.{ActorRef, ActorSystem}
+import akka.util.Timeout
 import com.escalatesoft.subcut.inject.NewBindingModule._
 import com.github.emstlk.UserManager.UpdateUserCoins
 import com.typesafe.config.ConfigFactory
@@ -33,6 +34,9 @@ object ClusterApp {
 
         if (seedAddr != ownAddr || seedPort != ownPort) {
           import akka.pattern.ask
+          import scala.concurrent.duration._
+
+          implicit val t = Timeout(1, SECONDS)
 
           1 to 5 foreach { uid =>
             (userManager ? UpdateUserCoins(uid, Random.nextInt(100))).mapTo[Long].foreach { r =>
