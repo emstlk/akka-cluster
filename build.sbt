@@ -12,7 +12,9 @@ val project = Project(
     javacOptions in Compile ++= Seq("-source", "1.6", "-target", "1.6", "-Xlint:unchecked", "-Xlint:deprecation"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
-      "com.typesafe.akka" %% "akka-contrib" % akkaVersion),
+      "com.typesafe.akka" %% "akka-contrib" % akkaVersion,
+      "com.twitter" %% "finagle-http" % "6.18.0",
+      "com.escalatesoft.subcut" %% "subcut" % "2.0"),
     javaOptions in run ++= Seq("-Xms128m", "-Xmx1024m"),
     Keys.fork in run := true,
     mainClass in(Compile, run) := Some("com.github.emstlk.ClusterApp")

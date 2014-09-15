@@ -1,8 +1,9 @@
 package com.github.emstlk
 
-import akka.actor.ActorSystem
-import com.typesafe.config.ConfigFactory
+import akka.actor.{ActorRef, ActorSystem}
+import com.escalatesoft.subcut.inject.NewBindingModule._
 import com.github.emstlk.UserManager.UpdateUserCoins
+import com.typesafe.config.ConfigFactory
 
 import scala.util.Random
 
@@ -16,22 +17,27 @@ object ClusterApp {
       val (ownAddr, ownPort) = parseAddr(args(1))
 
       val config = ConfigFactory.parseString( s"""
-      akka.cluster.seed-nodes=["akka.tcp://backend@$seedAddr:$seedPort"]
-      akka.remote.netty.tcp.hostname="$ownAddr"
-      akka.remote.netty.tcp.port="$ownPort"
-      """).withFallback(ConfigFactory.load)
+        akka.cluster.seed-nodes=["akka.tcp://backend@$seedAddr:$seedPort"]
+        akka.remote.netty.tcp.hostname="$ownAddr"
+        akka.remote.netty.tcp.port="$ownPort"
+        """).withFallback(ConfigFactory.load)
       val system = ActorSystem("backend", config)
 
-      val userManager = system.actorOf(UserManager.props(), "userManager")
+      val bindModule = newBindingModule { module =>
+        module.bind[ActorSystem] toSingle system
 
-      if (seedAddr != ownAddr || seedPort != ownPort) {
-        Thread.sleep(3000)
+        val userManager = system.actorOf(UserManager.props(module), "userManager")
+        module.bind[ActorRef] idBy UserManager toSingle userManager
 
-        1 to 5 foreach { uid =>
-          userManager ! UpdateUserCoins(uid, Random.nextInt(100))
-          Thread.sleep(200)
+        if (seedAddr != ownAddr || seedPort != ownPort) {
+          1 to 5 foreach { uid =>
+            userManager ! UpdateUserCoins(uid, Random.nextInt(100))
+            Thread.sleep(200)
+          }
         }
       }
+
+      bindModule.bindings
     }
   }
 

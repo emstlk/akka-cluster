@@ -4,56 +4,55 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.event.LoggingReceive
 import akka.routing.ConsistentHashingRouter.ConsistentHashable
 import akka.routing.FromConfig
-import akka.util.Timeout
-import com.github.emstlk.UserActor.AddCoins
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.escalatesoft.subcut.inject.{BindingId, BindingModule, Injectable}
+import com.github.emstlk.UserManager.UpdateUserCoins
 
-object UserManager {
-  def props(): Props = Props[UserManager]
+object UserManager extends BindingId {
+  def props(implicit bm: BindingModule) = Props(new UserManager)
 
-  case class UpdateUserCoins(uid: Long, coins: Long)
+  trait UidHashable extends ConsistentHashable {
+    val uid: Long
 
-  case class UpdateCoins(uid: Long, coins: Long) extends ConsistentHashable {
-    override def consistentHashKey: Any = uid
+    def consistentHashKey: Any = uid
   }
+
+  case class ForwardedMsg[T](key: T, msg: Any) extends ConsistentHashable {
+    def consistentHashKey = key
+  }
+
+  case class UpdateUserCoins(uid: Long, coins: Long) extends UidHashable
 }
 
-class UserManager extends Actor with ActorLogging {
+class UserManager(implicit bm: BindingModule) extends Actor with ActorLogging {
 
   import com.github.emstlk.UserManager._
-  import akka.pattern.ask
 
   val managerRouter = context.actorOf(Props.empty.withRouter(FromConfig), "router")
 
   override def receive = LoggingReceive {
-    case UpdateCoins(uid, coins) =>
-      val user = context.child("user-" + uid).getOrElse {
-//        log.info("Creating actor for user " + uid)
+    case r@ForwardedMsg(uid: Long, msg) =>
+      context.child("user-" + uid) getOrElse {
         context.actorOf(UserActor.props(uid), "user-" + uid)
-      }
-      user forward AddCoins(coins)
+      } forward msg
 
-    case UpdateUserCoins(uid, coins) =>
-      managerRouter.?(UpdateCoins(uid, coins))(Timeout(1000)).mapTo[Long].map { r =>
-        log.info("Got result " + r)
-      }
+    case msg: UidHashable =>
+      managerRouter forward ForwardedMsg(msg.uid, msg)
   }
 }
 
 object UserActor {
-  def props(uid: Long): Props = Props(new UserActor(uid))
-
-  case class AddCoins(amount: Long)
+  def props(uid: Long)(implicit bm: BindingModule) = Props(new UserActor(uid))
 }
 
-class UserActor(uid: Long) extends Actor with ActorLogging {
-
-  import com.github.emstlk.UserActor._
+class UserActor(uid: Long)(implicit val bindingModule: BindingModule)
+  extends Actor
+  with ActorLogging
+  with Injectable {
 
   var coins = 0L
 
   override def receive = LoggingReceive {
-    case AddCoins(amount) =>
+    case UpdateUserCoins(_, amount) =>
       coins = coins + amount
       log.info(s"User $uid got $amount coins, total $coins")
       sender ! coins
