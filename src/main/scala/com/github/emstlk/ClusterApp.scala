@@ -6,6 +6,8 @@ import com.escalatesoft.subcut.inject.NewBindingModule._
 import com.github.emstlk.UserManager.UpdateUserCoins
 import com.typesafe.config.ConfigFactory
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 import scala.util.Random
 
 object ClusterApp {
@@ -34,7 +36,6 @@ object ClusterApp {
 
         if (seedAddr != ownAddr || seedPort != ownPort) {
           import akka.pattern.ask
-          import scala.concurrent.duration._
 
           implicit val t = Timeout(1, SECONDS)
 
