@@ -32,8 +32,12 @@ object ClusterApp {
         Thread.sleep(2000)
 
         if (seedAddr != ownAddr || seedPort != ownPort) {
+          import akka.pattern.ask
+
           1 to 5 foreach { uid =>
-            userManager ! UpdateUserCoins(uid, Random.nextInt(100))
+            (userManager ? UpdateUserCoins(uid, Random.nextInt(100))).mapTo[Long].foreach { r =>
+              println("Got result " + r)
+            }
             Thread.sleep(200)
           }
         }
