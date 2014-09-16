@@ -3,6 +3,7 @@ package com.github.emstlk
 import akka.actor.{ActorRef, ActorSystem}
 import akka.util.Timeout
 import com.escalatesoft.subcut.inject.NewBindingModule._
+import com.github.emstlk.UserActor.GetCoins
 import com.github.emstlk.UserManager.UpdateUserCoins
 import com.typesafe.config.ConfigFactory
 
@@ -40,9 +41,8 @@ object ClusterApp {
           implicit val t = Timeout(1, SECONDS)
 
           1 to 5 foreach { uid =>
-            (userManager ? UpdateUserCoins(uid, Random.nextInt(100))).mapTo[Long].foreach { r =>
-              println("Got result " + r)
-            }
+            (userManager ? UpdateUserCoins(uid, Random.nextInt(100))).mapTo[Long]
+            (userManager ? GetCoins(uid)).mapTo[Long].foreach(coins => println(s"user $uid has $coins coins"))
             Thread.sleep(200)
           }
         }
